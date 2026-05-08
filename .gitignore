@@ -1,0 +1,78 @@
+# Dependencias
+node_modules/
+.pnp.*
+.yarn/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+.next/
+.turbo/
+out/
+*.tsbuildinfo
+
+# Tests / coverage
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Env files (NUNCA commitear)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+!.env.example
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE / OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Python (apps/ai)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.python-version
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Prisma
+apps/api/prisma/migrations/dev.db*
+
+# Docker volumes locales
+infra/docker/postgres-init/*.local.sql
+
+# Sentry
+.sentryclirc
+
+# Vercel
+.vercel/
+
+# Misc
+*.pem
+*.key
+*.crt
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log

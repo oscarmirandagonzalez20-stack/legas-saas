@@ -1,0 +1,48 @@
+# Dependencies — reinstalled inside Docker via pnpm
+node_modules
+**/node_modules
+
+# Build outputs — rebuilt inside Docker
+dist
+**/dist
+.next
+**/.next
+
+# Turbo cache
+.turbo
+
+# Test artifacts
+coverage
+**/coverage
+playwright-report
+test-results
+
+# Dev environment files — never bake secrets into images
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# IDE and OS noise
+.DS_Store
+**/.DS_Store
+.idea
+**/.idea
+.vscode
+**/.vscode
+*.log
+
+# Git history
+.git
+.gitignore
+
+# CI configs (not needed at runtime)
+.github
+
+# TypeScript build info (rebuilt inside Docker)
+*.tsbuildinfo
+
+# pnpm store (handled by layer cache)
+.pnpm-store

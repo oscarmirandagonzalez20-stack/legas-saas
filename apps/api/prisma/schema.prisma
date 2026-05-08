@@ -1,0 +1,431 @@
+// schema.prisma — Legal SaaS
+//
+// Modelo de datos multi-tenant con shared schema y aislamiento por tenant_id.
+// Las migraciones generadas activan Postgres Row-Level Security en todas las
+// tablas con tenant_id; ver: prisma/migrations/*_enable_rls.sql.
+//
+// Convención: nombres de tablas y columnas en snake_case (mapeados a camelCase
+// del lado de TypeScript con @map).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearch"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DATABASE_URL_DIRECT")
+  extensions = [pgcrypto, uuidOssp(map: "uuid-ossp"), vector, pgTrgm(map: "pg_trgm")]
+}
+
+// =====================================================================
+// CORE: TENANTS Y USUARIOS
+// =====================================================================
+
+model Tenant {
+  id                  String   @id @default(uuid()) @db.Uuid
+  slug                String   @unique
+  name                String
+  subscriptionPlan    SubscriptionPlan @default(STARTER) @map("subscription_plan")
+  metaBusinessId      String?  @map("meta_business_id")
+  privacyPolicyUrl    String?  @map("privacy_policy_url")
+  status              TenantStatus @default(ACTIVE)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  memberships         Membership[]
+  socialAccounts      SocialAccount[]
+  posts               Post[]
+  comments            Comment[]
+  leads               Lead[]
+  conversations       Conversation[]
+  templates           Template[]
+  automationRules     AutomationRule[]
+  consents            Consent[]
+  auditLogs           AuditLog[]
+  aiCalls             AiCall[]
+  messages            Message[]
+
+  @@map("tenants")
+}
+
+enum SubscriptionPlan {
+  STARTER
+  FIRM
+  ELITE
+  ENTERPRISE
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELED
+}
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique
+  fullName      String   @map("full_name")
+  clerkUserId   String?  @unique @map("clerk_user_id") // si se usa Clerk
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  memberships   Membership[]
+  assignedLeads Lead[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Membership {
+  userId    String   @map("user_id") @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  role      Role
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([userId, tenantId])
+  @@index([tenantId])
+  @@map("memberships")
+}
+
+enum Role {
+  OWNER
+  LAWYER
+  ASSISTANT
+  VIEWER
+}
+
+// =====================================================================
+// META INTEGRATION
+// =====================================================================
+
+model SocialAccount {
+  id                      String   @id @default(uuid()) @db.Uuid
+  tenantId                String   @map("tenant_id") @db.Uuid
+  platform                Platform
+  externalId              String   @map("external_id") // Page ID o IG User ID
+  displayName             String   @map("display_name")
+  accessTokenEncrypted    String   @map("access_token_encrypted") @db.Text
+  tokenExpiresAt          DateTime? @map("token_expires_at")
+  permissionsGranted      String[] @map("permissions_granted")
+  status                  SocialAccountStatus @default(ACTIVE)
+  webhookSubscribedAt         DateTime? @map("webhook_subscribed_at")
+  webhookSubscriptionError    String?   @map("webhook_subscription_error") @db.Text
+  createdAt                   DateTime  @default(now()) @map("created_at")
+  updatedAt                   DateTime  @updatedAt @map("updated_at")
+
+  tenant                  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  posts                   Post[]
+  conversations           Conversation[]
+
+  @@unique([platform, externalId])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("social_accounts")
+}
+
+enum Platform {
+  FACEBOOK
+  INSTAGRAM
+}
+
+enum SocialAccountStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+  ERROR
+}
+
+model Post {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  socialAccountId   String   @map("social_account_id") @db.Uuid
+  externalId        String   @map("external_id")
+  url               String?
+  type              PostType
+  contentExcerpt    String?  @map("content_excerpt") @db.Text
+  postedAt          DateTime? @map("posted_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  tenant            Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  socialAccount     SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  comments          Comment[]
+
+  @@unique([socialAccountId, externalId])
+  @@index([tenantId])
+  @@index([tenantId, socialAccountId, postedAt])
+  @@map("posts")
+}
+
+enum PostType {
+  FEED
+  REEL
+  STORY
+  AD
+}
+
+// =====================================================================
+// COMMENTS, LEADS, CONVERSATIONS
+// =====================================================================
+
+model Comment {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  postId            String   @map("post_id") @db.Uuid
+  externalId        String   @unique @map("external_id")
+  authorExternalId  String   @map("author_external_id")
+  authorName        String?  @map("author_name")
+  content           String   @db.Text
+  intentScore       Decimal? @map("intent_score") @db.Decimal(3, 2)
+  intentArea        String?  @map("intent_area")
+  intentSubarea     String?  @map("intent_subarea")
+  intentUrgency     String?  @map("intent_urgency")
+  embedding         Unsupported("vector(1536)")?
+  wasReplied        Boolean  @default(false) @map("was_replied")
+  hidden            Boolean  @default(false)
+  receivedAt        DateTime @map("received_at")
+  classifiedAt      DateTime? @map("classified_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  tenant            Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  post              Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  lead              Lead?
+
+  @@index([tenantId, receivedAt])
+  @@index([tenantId, intentArea])
+  @@map("comments")
+}
+
+model Lead {
+  id                      String   @id @default(uuid()) @db.Uuid
+  tenantId                String   @map("tenant_id") @db.Uuid
+  sourceCommentId         String?  @unique @map("source_comment_id") @db.Uuid
+  externalUserId          String   @map("external_user_id")
+  displayName             String?  @map("display_name")
+  whatsappPhone           String?  @map("whatsapp_phone")
+  email                   String?
+  areaLegal               String?  @map("area_legal")
+  stage                   LeadStage @default(NEW)
+  stageChangedAt          DateTime @default(now()) @map("stage_changed_at")
+  attributedRevenueMxn    Decimal  @default(0) @map("attributed_revenue_mxn") @db.Decimal(12, 2)
+  notes                   String?  @db.Text
+  tags                    String[]
+  assignedUserId          String?  @map("assigned_user_id") @db.Uuid
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  tenant                  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceComment           Comment? @relation(fields: [sourceCommentId], references: [id])
+  assignedUser            User?    @relation(fields: [assignedUserId], references: [id])
+  conversations           Conversation[]
+
+  @@index([tenantId, stage])
+  @@index([tenantId, createdAt])
+  @@map("leads")
+}
+
+enum LeadStage {
+  NEW
+  CONTACTED
+  WHATSAPP_INITIATED
+  CONSULTATION_SCHEDULED
+  CONSULTATION_PAID
+  CLIENT
+  LOST
+}
+
+model Conversation {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  leadId              String   @map("lead_id") @db.Uuid
+  socialAccountId     String   @map("social_account_id") @db.Uuid
+  externalThreadId    String?  @map("external_thread_id")
+  lastMessageAt       DateTime? @map("last_message_at")
+  in24hWindow         Boolean  @default(true) @map("in_24h_window")
+  status              ConversationStatus @default(ACTIVE)
+  humanOwned          Boolean  @default(false) @map("human_owned")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  tenant              Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead                Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  socialAccount       SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  messages            Message[]
+
+  @@index([tenantId, status])
+  @@map("conversations")
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+  CLOSED
+}
+
+model Message {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  conversationId    String   @map("conversation_id") @db.Uuid
+  direction         MessageDirection
+  sender            MessageSender
+  body              String   @db.Text
+  templateId        String?  @map("template_id") @db.Uuid
+  metaMessageId     String?  @unique @map("meta_message_id")
+  deliveredAt       DateTime? @map("delivered_at")
+  readAt            DateTime? @map("read_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  tenant            Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  template          Template?    @relation(fields: [templateId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@index([tenantId, conversationId, createdAt])
+  @@map("messages")
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageSender {
+  USER
+  BOT
+  HUMAN_AGENT
+}
+
+// =====================================================================
+// TEMPLATES Y AUTOMATIZACIÓN
+// =====================================================================
+
+model Template {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  name              String
+  triggerKeywords   String[] @map("trigger_keywords")
+  triggerAreas      String[] @map("trigger_areas")
+  bodyMarkdown      String   @map("body_markdown") @db.Text
+  variables         Json
+  isActive          Boolean  @default(true) @map("is_active")
+  hasDisclaimer     Boolean  @default(true) @map("has_disclaimer")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  tenant            Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages          Message[]
+
+  @@index([tenantId])
+  @@map("templates")
+}
+
+model AutomationRule {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String
+  trigger     Json     // { type: 'comment', filters: {...} }
+  conditions  Json     // [{ field, op, value }]
+  actions     Json     // [{ type: 'send_template', templateId: ... }]
+  isActive    Boolean  @default(true) @map("is_active")
+  priority    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, isActive])
+  @@map("automation_rules")
+}
+
+// =====================================================================
+// COMPLIANCE Y AUDIT
+// =====================================================================
+
+model AuditLog {
+  id            BigInt   @id @default(autoincrement())
+  tenantId      String?  @map("tenant_id") @db.Uuid
+  userId        String?  @map("user_id") @db.Uuid
+  action        String
+  resourceType  String   @map("resource_type")
+  resourceId    String?  @map("resource_id")
+  payload       Json?
+  ipAddress     String?  @map("ip_address") @db.Inet
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  tenant        Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user          User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+model Consent {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  externalUserId  String   @map("external_user_id")
+  consentType     String   @map("consent_type")
+  granted         Boolean
+  grantedAt       DateTime? @map("granted_at")
+  revokedAt       DateTime? @map("revoked_at")
+  evidenceUrl     String?  @map("evidence_url")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tenant          Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, externalUserId])
+  @@map("consents")
+}
+
+model AiCall {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String?  @map("tenant_id") @db.Uuid
+  promptVersion   String   @map("prompt_version")
+  model           String
+  inputTokens     Int      @map("input_tokens")
+  outputTokens    Int      @map("output_tokens")
+  costUsd         Decimal  @map("cost_usd") @db.Decimal(10, 6)
+  latencyMs       Int      @map("latency_ms")
+  resourceType    String?  @map("resource_type")
+  resourceId      String?  @map("resource_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tenant          Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@map("ai_calls")
+}
+
+// =====================================================================
+// IDEMPOTENCIA Y EVENTOS ENTRANTES
+// =====================================================================
+
+enum InboundEventStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+model InboundEvent {
+  id                    String              @id @default(uuid()) @db.Uuid
+  source                String              // 'meta-webhook'
+  externalId            String              @map("external_id") // comment_id o message_id
+  payload               Json
+  status                InboundEventStatus  @default(RECEIVED)
+  processingStartedAt   DateTime?           @map("processing_started_at")
+  processedAt           DateTime?           @map("processed_at")
+  errorMessage          String?             @map("error_message") @db.Text
+  receivedAt            DateTime            @default(now()) @map("received_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  @@unique([source, externalId])
+  @@index([status])
+  @@index([processingStartedAt])
+  @@map("inbound_events")
+}

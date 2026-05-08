@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Lint + Typecheck + Test ──────────────────────────────────────────────────
+  quality:
+    name: Quality gate
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: legal_saas
+          POSTGRES_PASSWORD: legal_saas_test
+          POSTGRES_DB: legal_saas_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U legal_saas"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup test DB extensions
+        run: |
+          PGPASSWORD=legal_saas_test psql -h localhost -U legal_saas -d legal_saas_test \
+            -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
+                CREATE EXTENSION IF NOT EXISTS \"pgcrypto\";
+                CREATE EXTENSION IF NOT EXISTS \"vector\";
+                CREATE EXTENSION IF NOT EXISTS \"pg_trgm\";"
+
+      - name: Prisma generate
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://legal_saas:legal_saas_test@localhost:5432/legal_saas_test
+
+      - name: Prisma migrate
+        run: pnpm db:migrate:deploy
+        env:
+          DATABASE_URL: postgresql://legal_saas:legal_saas_test@localhost:5432/legal_saas_test
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://legal_saas:legal_saas_test@localhost:5432/legal_saas_test
+          REDIS_URL: redis://localhost:6379
+          META_APP_ID: ci_test_app_id
+          META_APP_SECRET: ci_test_app_secret
+          META_VERIFY_TOKEN: ci_test_verify_token
+          META_REDIRECT_URI: https://api.example.com/meta/oauth/callback
+          # 64 hex zeros — safe throwaway key for CI unit tests only
+          ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+          FRONTEND_URL: https://app.example.com
+
+  # ── Build verification ───────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: quality
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate
+        run: pnpm db:generate
+        env:
+          # DATABASE_URL only needed for prisma generate, not for the build itself
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+      - name: Build API
+        run: pnpm build:api
+
+      - name: Build web
+        run: pnpm build:web
+        env:
+          # Dev bypass mode — no Clerk keys needed for build
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ""
+          NEXT_PUBLIC_API_URL: https://api.example.com
+          NEXT_PUBLIC_DEV_ORG_ID: dev-org-00000000-0000-0000-0000-000000000001
+          NEXT_PUBLIC_DEV_USER_ID: dev-user-00000000-0000-0000-0000-000000000001
+
+  # ── Dependency audit ─────────────────────────────────────────────────────────
+  audit:
+    name: Security audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level=high

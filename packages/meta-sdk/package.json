@@ -1,0 +1,22 @@
+{
+  "name": "@legal-saas/meta-sdk",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Wrapper tipado de Meta Graph API v21.0 (FB + IG): OAuth, webhooks, comments, messages, private replies.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@legal-saas/eslint-config": "workspace:*",
+    "@legal-saas/tsconfig-config": "workspace:*",
+    "vitest": "^2.1.4"
+  },
+  "_note": "Issue #13 de BACKLOG.md construye este SDK. Documentar versión Graph API y permisos en README."
+}

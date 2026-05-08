@@ -1,0 +1,8 @@
+export {};
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    tenantId?: string;
+    rawBody?: Buffer;
+  }
+}

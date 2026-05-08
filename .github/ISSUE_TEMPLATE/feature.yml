@@ -1,0 +1,82 @@
+name: ✨ Feature
+description: Nueva funcionalidad o mejora alineada con el roadmap (Fase 1 = FB/IG + CRM).
+title: "[feat] "
+labels: ["type:feat"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Antes de abrir, verifica que la feature está en `BACKLOG.md` o tiene aprobación explícita.
+        **NO** abrir issues para: TikTok/YT/X, builder visual, IA generativa libre, scraping. Ver `WHAT_NOT_TO_BUILD.md`.
+
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto y problema
+      description: ¿Qué dolor del usuario resuelve? ¿Cómo se manifiesta hoy?
+      placeholder: "El abogado tarda X minutos en pasar un comentario a DM porque..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solucion
+    attributes:
+      label: Solución propuesta
+      description: Describe la solución a alto nivel. Pega referencias a ADRs o secciones de CLAUDE.md si aplica.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tareas
+    attributes:
+      label: Tareas
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: textarea
+    id: aceptacion
+    attributes:
+      label: Criterios de aceptación
+      description: Lo que un revisor verifica antes de aprobar el merge.
+      value: |
+        - [ ] Tests unitarios cubren happy path y al menos un caso de error.
+        - [ ] Tests de aislamiento multi-tenant si toca tabla con `tenantId`.
+        - [ ] Logs no exponen secretos (revisado con `redactSecrets`).
+        - [ ] Sin nuevas advertencias de TypeScript / ESLint.
+        - [ ] Documentación actualizada (README/CLAUDE.md/ADR si la decisión es relevante).
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área principal
+      options:
+        - area:web
+        - area:api
+        - area:ai
+        - area:infra
+        - area:docs
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioridad
+      options:
+        - p0 (bloqueador del hito en curso)
+        - p1 (necesario en este sprint)
+        - p2 (mejora, sin bloqueo)
+    validations:
+      required: true
+
+  - type: input
+    id: epic
+    attributes:
+      label: EPIC asociada (de BACKLOG.md)
+      placeholder: "EPIC 4 — Meta integration"

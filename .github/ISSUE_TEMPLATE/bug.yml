@@ -1,0 +1,66 @@
+name: 🐛 Bug
+description: Algo no funciona como debería en código ya entregado.
+title: "[bug] "
+labels: ["type:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Si el bug afecta seguridad, datos personales o tokens de Meta: **no abras issue público**.
+        Sigue el procedimiento de `SECURITY.md` sección "Reporte de incidentes".
+
+  - type: textarea
+    id: que_paso
+    attributes:
+      label: ¿Qué pasó?
+      description: Comportamiento observado, mensaje de error si aplica.
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: ¿Qué esperabas?
+    validations:
+      required: true
+
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Pasos para reproducir
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: entorno
+    attributes:
+      label: Entorno
+      value: |
+        - Rama / commit:
+        - App afectada (web/api/ai):
+        - Node / pnpm / Docker:
+        - Tenant ID (si aplica, NUNCA pegar tokens):
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / capturas
+      description: Pega logs sin secretos. Si tienes traza Sentry, enlaza.
+
+  - type: dropdown
+    id: severidad
+    attributes:
+      label: Severidad
+      options:
+        - sev1 (producción caída o fuga)
+        - sev2 (función crítica rota)
+        - sev3 (degradación)
+        - sev4 (cosmético)
+    validations:
+      required: true

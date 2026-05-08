@@ -1,0 +1,68 @@
+name: legal-saas-dev
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: legal-saas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: legal_saas
+      POSTGRES_PASSWORD: legal_saas_dev_only
+      POSTGRES_DB: legal_saas_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U legal_saas -d legal_saas_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: legal-saas-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Opcional: Adminer para inspeccionar Postgres en el browser
+  # http://localhost:8080  | server: postgres | user: legal_saas | pass: legal_saas_dev_only
+  adminer:
+    image: adminer:latest
+    container_name: legal-saas-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Opcional: Redis Commander para inspeccionar Redis
+  # http://localhost:8081
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: legal-saas-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

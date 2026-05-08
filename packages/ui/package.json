@@ -1,0 +1,24 @@
+{
+  "name": "@legal-saas/ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Componentes React compartidos (shadcn/ui style) entre futuras superficies (web, panel admin).",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@legal-saas/eslint-config": "workspace:*",
+    "@legal-saas/tsconfig-config": "workspace:*",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "_note": "Vacío en Fase 1 — los componentes viven en apps/web hasta que aparezca una segunda superficie que los necesite."
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Leer primero
+    url: https://github.com/
+    about: Antes de abrir un issue, revisa CLAUDE.md, BACKLOG.md y WHAT_NOT_TO_BUILD.md.
+  - name: 🔒 Reporte de seguridad
+    url: https://github.com/
+    about: Vulnerabilidades o fugas — usa el canal privado descrito en SECURITY.md, no abras issue público.

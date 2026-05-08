@@ -1,0 +1,19 @@
+{
+  "name": "@legal-saas/shared-types",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tipos TypeScript compartidos entre web y api (DTOs, enums, schemas zod).",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@legal-saas/eslint-config": "workspace:*",
+    "@legal-saas/tsconfig-config": "workspace:*"
+  }
+}
