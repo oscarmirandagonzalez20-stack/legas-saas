@@ -13,6 +13,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   if (clerkKey) {
     // Dynamic import so the build doesn't fail without Clerk keys
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports
     const { ClerkProvider } = require('@clerk/nextjs') as typeof import('@clerk/nextjs');
     return (
       <ClerkProvider

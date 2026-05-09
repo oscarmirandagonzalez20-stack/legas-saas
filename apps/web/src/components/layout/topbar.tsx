@@ -64,6 +64,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
 
 // Rendered only when IS_CLERK=true (build-time constant) — hook called unconditionally.
 function ClerkSignOutItem() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { useClerk } = require('@clerk/nextjs') as {
     useClerk: () => { signOut: (opts: { redirectUrl: string }) => Promise<void> };
   };

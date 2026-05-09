@@ -4,6 +4,7 @@ export const metadata: Metadata = { title: 'Crear cuenta — Legal SaaS' };
 
 export default function SignUpPage() {
   if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports
     const { SignUp } = require('@clerk/nextjs') as typeof import('@clerk/nextjs');
     return <SignUp />;
   }

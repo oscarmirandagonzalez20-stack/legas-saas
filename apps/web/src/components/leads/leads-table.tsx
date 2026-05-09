@@ -70,8 +70,8 @@ export function LeadsTable({ result, currentPage }: LeadsTableProps) {
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <Badge variant={STAGE_VARIANT[lead.stage] ?? 'outline'}>
-                    {STAGE_LABELS[lead.stage] ?? lead.stage}
+                  <Badge variant={STAGE_VARIANT[lead.stage]}>
+                    {STAGE_LABELS[lead.stage]}
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
@@ -103,12 +103,12 @@ export function LeadsTable({ result, currentPage }: LeadsTableProps) {
           </p>
           <div className="flex gap-1">
             <Button variant="outline" size="sm" asChild disabled={currentPage <= 1}>
-              <Link href={`?page=${currentPage - 1}`}>
+              <Link href={`?page=${String(currentPage - 1)}`}>
                 <ChevronLeft className="h-4 w-4" />
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild disabled={currentPage >= pages}>
-              <Link href={`?page=${currentPage + 1}`}>
+              <Link href={`?page=${String(currentPage + 1)}`}>
                 <ChevronRight className="h-4 w-4" />
               </Link>
             </Button>

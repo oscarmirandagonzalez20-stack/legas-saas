@@ -48,7 +48,7 @@ export function FailedJobsTable({ jobs: initialJobs }: Props) {
               key={job.id}
               job={job}
               getToken={getToken}
-              onRetried={(id) => setJobs((prev) => prev.filter((j) => j.id !== id))}
+              onRetried={(id) => { setJobs((prev) => prev.filter((j) => j.id !== id)); }}
             />
           ))}
         </tbody>

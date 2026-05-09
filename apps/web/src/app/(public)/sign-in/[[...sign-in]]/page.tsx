@@ -4,6 +4,7 @@ export const metadata: Metadata = { title: 'Iniciar sesión — Legal SaaS' };
 
 export default function SignInPage() {
   if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports
     const { SignIn } = require('@clerk/nextjs') as typeof import('@clerk/nextjs');
     return <SignIn />;
   }

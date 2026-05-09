@@ -81,7 +81,7 @@ export default async function InboxPage() {
               </div>
 
               <div className="flex flex-col items-end gap-1 shrink-0">
-                <Badge variant={STATUS_VARIANT[conv.status] ?? 'outline'} className="text-xs">
+                <Badge variant={STATUS_VARIANT[conv.status]} className="text-xs">
                   {conv.status === 'ACTIVE' ? 'Activa' : conv.status === 'ARCHIVED' ? 'Archivada' : 'Cerrada'}
                 </Badge>
                 {conv.lastMessageAt && (

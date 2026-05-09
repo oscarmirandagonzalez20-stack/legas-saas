@@ -18,7 +18,7 @@ export async function apiFetch<T>(
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   } else if (IS_DEV_BYPASS) {
     headers['X-Dev-Tenant-Id'] = DEV_ORG_ID;
   }

@@ -33,7 +33,7 @@ function loadClerkHooks(): { useCurrentUser: UseCurrentUser; useAuthToken: UseAu
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const clerk = require('@clerk/nextjs') as {
     useAuth: () => { orgId: string | null | undefined; getToken: () => Promise<string | null> };
-    useUser: () => { user: { id: string; organizationMemberships?: Array<{ organization: { name: string } }> } | null | undefined };
+    useUser: () => { user: { id: string; organizationMemberships?: { organization: { name: string } }[] } | null | undefined };
   };
 
   function useCurrentUser(): AuthUser {

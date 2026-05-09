@@ -23,7 +23,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
   const stage = params.stage as LeadStage | undefined;
   const page = Number(params.page ?? '1');
 
-  let result = await listLeads(token, { search: params.search, stage, page, limit: 20 }).catch(
+  const result = await listLeads(token, { search: params.search, stage, page, limit: 20 }).catch(
     () => ({ data: [], total: 0, page: 1, pages: 1 }),
   );
 

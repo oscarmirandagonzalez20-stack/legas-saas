@@ -6,7 +6,7 @@ export async function getQueueStats(token: string | null): Promise<QueueStats> {
 }
 
 export async function getFailedJobs(token: string | null, limit = 50): Promise<FailedJob[]> {
-  return apiFetch<FailedJob[]>(`/queue/failed?limit=${limit}`, { token });
+  return apiFetch<FailedJob[]>(`/queue/failed?limit=${String(limit)}`, { token });
 }
 
 export async function retryJob(

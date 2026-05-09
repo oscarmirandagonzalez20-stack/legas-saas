@@ -120,7 +120,7 @@ async function main(): Promise<void> {
       })),
       skipDuplicates: true,
     });
-    console.log(`  ✓ Leads: ${count} created (${DEMO_LEADS.length - count} already existed)`);
+    console.log(`  ✓ Leads: ${String(count)} created (${String(DEMO_LEADS.length - count)} already existed)`);
   });
 
   console.log('\nSeed complete.');

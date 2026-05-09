@@ -54,8 +54,8 @@ export function LeadsFilters({ currentSearch, currentStage }: LeadsFiltersProps)
           className="pl-9"
           onChange={(e) => {
             const val = e.target.value;
-            const timeout = setTimeout(() => updateParams({ search: val || undefined }), 400);
-            return () => clearTimeout(timeout);
+            const timeout = setTimeout(() => { updateParams({ search: val || undefined }); }, 400);
+            return () => { clearTimeout(timeout); };
           }}
         />
       </div>
@@ -65,9 +65,9 @@ export function LeadsFilters({ currentSearch, currentStage }: LeadsFiltersProps)
         {STAGES.map((s) => (
           <button
             key={s.value}
-            onClick={() =>
-              updateParams({ stage: currentStage === s.value ? undefined : s.value })
-            }
+            onClick={() => {
+              updateParams({ stage: currentStage === s.value ? undefined : s.value });
+            }}
             className="focus:outline-none"
           >
             <Badge
@@ -84,7 +84,7 @@ export function LeadsFilters({ currentSearch, currentStage }: LeadsFiltersProps)
             variant="ghost"
             size="sm"
             className="h-6 px-2 text-xs text-muted-foreground"
-            onClick={() => updateParams({ search: undefined, stage: undefined })}
+            onClick={() => { updateParams({ search: undefined, stage: undefined }); }}
           >
             <X className="h-3 w-3 mr-1" />
             Limpiar

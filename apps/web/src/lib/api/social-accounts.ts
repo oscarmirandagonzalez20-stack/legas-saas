@@ -8,8 +8,8 @@ export async function listSocialAccounts(token: string | null): Promise<SocialAc
 export async function disconnectSocialAccount(
   id: string,
   token: string | null,
-): Promise<void> {
-  return apiFetch<void>(`/social-accounts/${id}`, { method: 'DELETE', token });
+): Promise<undefined> {
+  return apiFetch<undefined>(`/social-accounts/${id}`, { method: 'DELETE', token });
 }
 
 export async function getConnectMetaUrl(

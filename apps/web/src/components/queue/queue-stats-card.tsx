@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { Activity, Clock, AlertCircle, CheckCircle, PauseCircle } from 'lucide-react';
+import { Activity, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { QueueStats } from '@/lib/api/types';
@@ -19,7 +19,6 @@ export function QueueStatsCard({ stats }: Props) {
     );
   }
 
-  const isHealthy = stats.failed === 0 && !stats.paused;
   const isDegraded = stats.failed > 0 && stats.failed < 10;
   const isCritical = stats.failed >= 10 || stats.paused;
 
@@ -31,7 +30,7 @@ export function QueueStatsCard({ stats }: Props) {
             <p className="text-sm font-medium">webhook-processing</p>
             {stats.paused && <Badge variant="warning">Pausada</Badge>}
           </div>
-          <QueueHealthBadge healthy={isHealthy} degraded={isDegraded} critical={isCritical} />
+          <QueueHealthBadge degraded={isDegraded} critical={isCritical} />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -52,7 +51,7 @@ export function QueueStatsCard({ stats }: Props) {
 }
 
 function StatItem({
-  icon: Icon,
+  icon,
   label,
   value,
   alert,
@@ -62,6 +61,7 @@ function StatItem({
   value: number;
   alert?: boolean;
 }) {
+  const Icon = icon;
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -76,11 +76,9 @@ function StatItem({
 }
 
 function QueueHealthBadge({
-  healthy,
   degraded,
   critical,
 }: {
-  healthy: boolean;
   degraded: boolean;
   critical: boolean;
 }) {

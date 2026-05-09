@@ -77,7 +77,7 @@ export function OnboardingWizard() {
                 tu página de Facebook para empezar a detectar leads.
               </p>
             </div>
-            <Button className="w-full" onClick={() => setStep(2)}>
+            <Button className="w-full" onClick={() => { setStep(2); }}>
               Continuar <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -110,7 +110,7 @@ export function OnboardingWizard() {
                 </>
               )}
             </Button>
-            <Button variant="ghost" size="sm" className="w-full" onClick={() => setStep(1)}>
+            <Button variant="ghost" size="sm" className="w-full" onClick={() => { setStep(1); }}>
               Atrás
             </Button>
           </div>

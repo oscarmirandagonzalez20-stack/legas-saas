@@ -166,7 +166,7 @@ function SocialAccountCard({
             variant="ghost"
             size="icon"
             className="text-muted-foreground hover:text-destructive"
-            onClick={() => setConfirmOpen(true)}
+            onClick={() => { setConfirmOpen(true); }}
             disabled={isPending}
           >
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}

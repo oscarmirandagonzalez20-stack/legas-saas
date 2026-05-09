@@ -13,7 +13,7 @@ export async function fetchSystemStatus(token: string | null): Promise<SystemSta
       { token },
     );
     return {
-      queueHealthy: health.info?.['queue']?.status === 'up',
+      queueHealthy: health.info?.queue?.status === 'up',
       webhookConnected: true,
       accountsWithError: 0,
       retryPending: 0,

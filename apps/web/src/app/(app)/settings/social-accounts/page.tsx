@@ -15,7 +15,7 @@ export default async function SocialAccountsPage({
   const token = await auth.getToken();
   const params = await searchParams;
 
-  let accounts = await listSocialAccounts(token).catch(() => []);
+  const accounts = await listSocialAccounts(token).catch(() => []);
 
   const connected = params.connected ? Number(params.connected) : null;
   const error = params.error ?? null;
