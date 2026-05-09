@@ -7,5 +7,8 @@ numReplicas = 1
 sleepApplication = false
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
-healthcheckPath = "/health/live"
-healthcheckTimeout = 30
+# /health → bare endpoint, no DB/Redis checks, responds as soon as NestJS binds
+healthcheckPath = "/health"
+healthcheckTimeout = 60
+# Run Prisma migrations before starting the server on every deploy
+startCommand = "sh -c 'npx prisma migrate deploy && node dist/main.js'"

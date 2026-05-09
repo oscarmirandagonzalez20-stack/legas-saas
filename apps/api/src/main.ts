@@ -85,7 +85,7 @@ async function bootstrap(): Promise<void> {
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
 
-  const port = parseInt(process.env.PORT ?? '4000', 10);
+  const port = Number(process.env.PORT) || 3000;
   await app.listen(port, '0.0.0.0');
 }
 

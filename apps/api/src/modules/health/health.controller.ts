@@ -13,6 +13,12 @@ export class HealthController {
     private readonly queueIndicator: QueueHealthIndicator,
   ) {}
 
+  /** Railway healthcheck — plain 200 OK, no dependency checks */
+  @Get()
+  healthcheck(): { status: string } {
+    return { status: 'ok' };
+  }
+
   /** Liveness: is the process alive and accepting requests? */
   @Get('live')
   live(): { status: string } {
