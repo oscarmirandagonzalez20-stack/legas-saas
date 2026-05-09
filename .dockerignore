@@ -1,4 +1,4 @@
-# Dependencies — reinstalled inside Docker via pnpm
+# Dependencies — reinstalled inside Docker
 node_modules
 **/node_modules
 
@@ -10,6 +10,7 @@ dist
 
 # Turbo cache
 .turbo
+**/.turbo
 
 # Test artifacts
 coverage
@@ -29,20 +30,30 @@ test-results
 .DS_Store
 **/.DS_Store
 .idea
-**/.idea
 .vscode
-**/.vscode
 *.log
 
 # Git history
 .git
 .gitignore
+.gitattributes
 
-# CI configs (not needed at runtime)
+# CI configs
 .github
 
-# TypeScript build info (rebuilt inside Docker)
+# TypeScript build info — rebuilt inside Docker
 *.tsbuildinfo
+**/*.tsbuildinfo
 
-# pnpm store (handled by layer cache)
+# pnpm local store
 .pnpm-store
+
+# Python / AI app — not needed for API image
+apps/ai
+apps/web
+
+# Terraform — not needed at runtime
+infra/terraform
+
+# Docs
+docs
