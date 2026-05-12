@@ -12,7 +12,27 @@ import helmet from '@fastify/helmet';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from '@/app.module';
 
+// ── Process-level safety net ────────────────────────────────────────────────
+// Catches anything that escapes NestJS error handling so Railway gets a
+// clean log + non-zero exit code rather than a silent hang or crash loop.
+process.on('unhandledRejection', (reason: unknown) => {
+  // eslint-disable-next-line no-console
+  console.error('[process] unhandledRejection:', reason);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (err: Error) => {
+  // eslint-disable-next-line no-console
+  console.error('[process] uncaughtException:', err.message, err.stack);
+  process.exit(1);
+});
+
 async function bootstrap(): Promise<void> {
+  const port = Number(process.env.PORT) || 3000;
+
+  // eslint-disable-next-line no-console
+  console.log('[bootstrap] Creating NestJS application...');
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({
@@ -24,6 +44,8 @@ async function bootstrap(): Promise<void> {
   );
 
   // ── Security headers ────────────────────────────────────────────────────────
+  // eslint-disable-next-line no-console
+  console.log('[bootstrap] Registering security headers...');
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
@@ -85,8 +107,6 @@ async function bootstrap(): Promise<void> {
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
 
-  const port = Number(process.env.PORT) || 3000;
-
   // eslint-disable-next-line no-console
   console.log('PORT:', port);
   // eslint-disable-next-line no-console
@@ -98,4 +118,10 @@ async function bootstrap(): Promise<void> {
   console.log('Healthcheck ready');
 }
 
-void bootstrap();
+// Explicit .catch so Railway logs show a clear fatal error if bootstrap
+// fails, rather than an unhandled rejection with no context.
+void bootstrap().catch((err: unknown) => {
+  // eslint-disable-next-line no-console
+  console.error('[bootstrap] Fatal error during startup:', err);
+  process.exit(1);
+});

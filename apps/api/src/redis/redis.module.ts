@@ -13,13 +13,11 @@ class RedisLifecycle implements OnModuleDestroy {
   constructor(config: ConfigService<Env, true>) {
     const url = config.get('REDIS_URL', { infer: true });
     this.client = new Redis(url, {
-      // BullMQ requires this to be null; for general-purpose clients, use a reasonable default
       maxRetriesPerRequest: 3,
-      // Don't queue commands while reconnecting — fail fast so callers can handle errors
       enableOfflineQueue: false,
-      // Exponential backoff capped at 3 s; ioredis calls this on each failed connect attempt
       retryStrategy: (times: number) => Math.min(times * 200, 3000),
-      lazyConnect: false,
+      // Connect on first use — keeps module init non-blocking even if Redis is slow.
+      lazyConnect: true,
     });
 
     this.client.on('error', (err: Error) => {
