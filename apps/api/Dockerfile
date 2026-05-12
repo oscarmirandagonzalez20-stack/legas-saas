@@ -48,8 +48,14 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser  --system --uid 1001 nestjs
 
-# Self-contained deployment snapshot (flat node_modules + dist/)
+# Self-contained deployment snapshot: flat prod node_modules + package files.
+# NOTE: pnpm deploy respects .gitignore when selecting files, so dist/ (which is
+# gitignored) is NOT included here — we copy it explicitly below.
 COPY --from=builder --chown=nestjs:nodejs /deploy ./
+
+# Webpack bundle — dist/ is gitignored so pnpm deploy excludes it. Copy directly
+# from the builder where nest build placed it.
+COPY --from=builder --chown=nestjs:nodejs /monorepo/apps/api/dist ./dist
 
 # Prisma schema required by `node node_modules/.bin/prisma migrate deploy`
 # which Railway runs via the predeploy hook in railway.toml before traffic

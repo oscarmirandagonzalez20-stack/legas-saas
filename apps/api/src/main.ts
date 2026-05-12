@@ -12,98 +12,110 @@ import helmet from '@fastify/helmet';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from '@/app.module';
 
+// ── Diagnostic helpers ──────────────────────────────────────────────────────
+// These run before pino is wired. After DI, NestJS logger takes over.
+const t0 = Date.now();
+const ts = (): string => `[${new Date().toISOString()}] [+${String(Date.now() - t0)}ms]`;
+const mask = (v: string | undefined, visible = 30): string =>
+  v ? `${v.slice(0, visible)}… (len=${String(v.length)})` : 'NOT SET';
+
 // ── Process-level safety net ────────────────────────────────────────────────
-// Catches anything that escapes NestJS error handling so Railway gets a
-// clean log + non-zero exit code rather than a silent hang or crash loop.
 process.on('unhandledRejection', (reason: unknown) => {
-  console.error('[process] unhandledRejection:', reason);
+  console.error(`${ts()} [FATAL] unhandledRejection:`, reason);
   process.exit(1);
 });
 
 process.on('uncaughtException', (err: Error) => {
-  console.error('[process] uncaughtException:', err.message, err.stack);
+  console.error(`${ts()} [FATAL] uncaughtException:`, err.message, err.stack);
   process.exit(1);
 });
 
 async function bootstrap(): Promise<void> {
   const port = Number(process.env.PORT) || 3000;
 
-  // eslint-disable-next-line no-console
-  console.log('[bootstrap] Creating NestJS application...');
+  // ── Full env snapshot ───────────────────────────────────────────────────
+  console.warn(`${ts()} ═══════════════ BOOTSTRAP START ═══════════════`);
+  console.warn(`${ts()} [env] NODE_ENV       = ${process.env.NODE_ENV ?? 'NOT SET'}`);
+  console.warn(`${ts()} [env] PORT           = ${process.env.PORT ?? 'NOT SET'} → will listen on ${String(port)}`);
+  console.warn(`${ts()} [env] DATABASE_URL   = ${mask(process.env.DATABASE_URL)}`);
+  console.warn(`${ts()} [env] REDIS_URL      = ${mask(process.env.REDIS_URL)}`);
+  console.warn(`${ts()} [env] ENCRYPTION_KEY = ${process.env.ENCRYPTION_KEY ? `[SET len=${String(process.env.ENCRYPTION_KEY.length)}]` : 'NOT SET (empty string default)'}`);
+  console.warn(`${ts()} [env] FRONTEND_URL   = ${process.env.FRONTEND_URL ?? 'NOT SET'}`);
+  console.warn(`${ts()} [env] CLERK_SECRET   = ${process.env.CLERK_SECRET_KEY ? '[SET]' : 'NOT SET'}`);
+  console.warn(`${ts()} [env] SENTRY_DSN     = ${process.env.SENTRY_DSN ? '[SET]' : 'NOT SET'}`);
 
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter({
-      logger: false,
-      genReqId: (req: { headers: Record<string, string | string[] | undefined> }) =>
-        (req.headers['x-request-id'] as string | undefined) ?? randomUUID(),
-    }),
-    { bufferLogs: true },
-  );
+  // ── Hang alarm — fires if bootstrap stalls for >45s ─────────────────────
+  const hangAlarm = setTimeout(() => {
+    console.error(`${ts()} [HANG] Bootstrap has NOT completed after 45s`);
+    console.error(`${ts()} [HANG] Possible causes: BullMQ waiting for Redis / Prisma blocking / circular DI`);
+  }, 45_000);
+  hangAlarm.unref();
 
-  // ── Security headers ────────────────────────────────────────────────────────
-  // eslint-disable-next-line no-console
-  console.log('[bootstrap] Registering security headers...');
+  // ── Step 1: NestJS DI ───────────────────────────────────────────────────
+  console.warn(`${ts()} [1/6] NestFactory.create — running DI + module init...`);
+  let app: NestFastifyApplication;
+  try {
+    app = await NestFactory.create<NestFastifyApplication>(
+      AppModule,
+      new FastifyAdapter({
+        logger: false,
+        genReqId: (req: { headers: Record<string, string | string[] | undefined> }) =>
+          (req.headers['x-request-id'] as string | undefined) ?? randomUUID(),
+      }),
+      { bufferLogs: true },
+    );
+  } catch (err: unknown) {
+    console.error(`${ts()} [1/6] FAILED — NestFactory.create threw:`, err);
+    console.error(`${ts()} [1/6] Likely: env validation rejected DATABASE_URL/REDIS_URL, or DI error`);
+    process.exit(1);
+  }
+  console.warn(`${ts()} [1/6] ✓ NestJS app created — DI complete`);
+
+  // ── Step 2: helmet ──────────────────────────────────────────────────────
+  console.warn(`${ts()} [2/6] Registering Fastify plugins (helmet)...`);
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
-        defaultSrc:    ["'self'"],
-        scriptSrc:     ["'self'", "'unsafe-inline'"],   // Next.js hydration scripts
-        styleSrc:      ["'self'", "'unsafe-inline'"],   // Tailwind inline styles
-        imgSrc:        ["'self'", 'data:', 'https:'],
-        connectSrc:    ["'self'"],
-        frameSrc:      ["'none'"],
-        fontSrc:       ["'self'"],
-        objectSrc:     ["'none'"],
-        baseUri:       ["'self'"],
-        formAction:    ["'self'"],
+        defaultSrc:  ["'self'"],
+        scriptSrc:   ["'self'", "'unsafe-inline'"],
+        styleSrc:    ["'self'", "'unsafe-inline'"],
+        imgSrc:      ["'self'", 'data:', 'https:'],
+        connectSrc:  ["'self'"],
+        frameSrc:    ["'none'"],
+        fontSrc:     ["'self'"],
+        objectSrc:   ["'none'"],
+        baseUri:     ["'self'"],
+        formAction:  ["'self'"],
       },
     },
-    hsts: {
-      maxAge: 31_536_000,
-      includeSubDomains: true,
-      preload: true,
-    },
+    hsts:           { maxAge: 31_536_000, includeSubDomains: true, preload: true },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    noSniff: true,
-    frameguard: { action: 'deny' },
+    noSniff:        true,
+    frameguard:     { action: 'deny' },
     permittedCrossDomainPolicies: false,
-    hidePoweredBy: true,
+    hidePoweredBy:  true,
   });
+  console.warn(`${ts()} [2/6] ✓ helmet registered`);
 
-  // ── CORS ────────────────────────────────────────────────────────────────────
-  // No localhost fallback — if FRONTEND_URL is absent in production it means
-  // browser CORS requests will be blocked, but Railway's healthcheck probe is
-  // a direct HTTP GET with no Origin header so this never affects /health.
+  // ── Step 3: CORS ────────────────────────────────────────────────────────
+  console.warn(`${ts()} [3/6] Configuring CORS...`);
   const frontendUrl = process.env.FRONTEND_URL ?? '';
   const corsOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
     : frontendUrl
     ? [frontendUrl]
     : [];
-
-  // eslint-disable-next-line no-console
-  console.log('[bootstrap] NODE_ENV:', process.env.NODE_ENV ?? 'development');
-  // eslint-disable-next-line no-console
-  console.log('[bootstrap] DATABASE_URL set:', !!process.env.DATABASE_URL);
-  // eslint-disable-next-line no-console
-  console.log('[bootstrap] REDIS_URL set:', !!process.env.REDIS_URL);
-  // eslint-disable-next-line no-console
-  console.log(
-    '[bootstrap] CORS origins:',
-    corsOrigins.length ? corsOrigins.join(', ') : '(none — set FRONTEND_URL or CORS_ORIGINS)',
-  );
-
+  console.warn(`${ts()} [3/6] CORS origins: ${corsOrigins.length ? corsOrigins.join(', ') : '(none — Railway healthcheck probe has no Origin header, works regardless)'}`);
   app.enableCors({
-    origin: corsOrigins.length ? corsOrigins : false,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    origin:         corsOrigins.length ? corsOrigins : false,
+    credentials:    true,
+    methods:        ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Dev-Tenant-Id', 'X-Request-Id'],
   });
+  console.warn(`${ts()} [3/6] ✓ CORS configured`);
 
-  // ── Raw body capture for HMAC verification on the Meta webhook endpoint ─────
-  // Must be registered before app.listen() — Fastify seals its plugin container
-  // when listen() is called, not during NestFactory.create().
+  // ── Step 4: Raw body hook (HMAC for Meta webhooks) ──────────────────────
+  console.warn(`${ts()} [4/6] Adding preParsing raw-body hook...`);
   const fastify = app.getHttpAdapter().getInstance();
   fastify.addHook(
     'preParsing',
@@ -111,31 +123,35 @@ async function bootstrap(): Promise<void> {
       const pt = new PassThrough();
       const chunks: Buffer[] = [];
       pt.on('data', (chunk: Buffer) => chunks.push(chunk));
-      pt.on('end', () => {
-        request.rawBody = Buffer.concat(chunks);
-      });
+      pt.on('end', () => { request.rawBody = Buffer.concat(chunks); });
       payload.pipe(pt);
       done(null, pt as unknown as Readable);
     },
   );
+  console.warn(`${ts()} [4/6] ✓ raw-body hook registered`);
 
+  // ── Step 5: Pino logger + shutdown hooks ────────────────────────────────
+  console.warn(`${ts()} [5/6] Wiring pino logger + shutdown hooks...`);
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
+  console.warn(`${ts()} [5/6] ✓ logger and shutdown hooks ready`);
 
-  // eslint-disable-next-line no-console
-  console.log('PORT:', port);
-  // eslint-disable-next-line no-console
-  console.log('HOST: 0.0.0.0');
+  // ── Step 6: Listen ──────────────────────────────────────────────────────
+  console.warn(`${ts()} [6/6] Calling app.listen(${String(port)}, '0.0.0.0')...`);
+  try {
+    await app.listen(port, '0.0.0.0');
+  } catch (err: unknown) {
+    console.error(`${ts()} [6/6] FAILED — app.listen threw:`, err);
+    console.error(`${ts()} [6/6] Check port ${String(port)} binding or Fastify plugin error`);
+    process.exit(1);
+  }
 
-  await app.listen(port, '0.0.0.0');
-
-  // eslint-disable-next-line no-console
-  console.log('Healthcheck ready');
+  clearTimeout(hangAlarm);
+  console.warn(`${ts()} [6/6] ✓ LISTENING on 0.0.0.0:${String(port)}`);
+  console.warn(`${ts()} ══════ BOOTSTRAP COMPLETE — GET /health → 200 OK ══════`);
 }
 
-// Explicit .catch so Railway logs show a clear fatal error if bootstrap
-// fails, rather than an unhandled rejection with no context.
 void bootstrap().catch((err: unknown) => {
-  console.error('[bootstrap] Fatal error during startup:', err);
+  console.error(`${ts()} [FATAL] Unhandled bootstrap error:`, err);
   process.exit(1);
 });
