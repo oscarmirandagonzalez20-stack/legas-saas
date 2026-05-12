@@ -54,8 +54,12 @@ COPY --from=builder --chown=nestjs:nodejs /deploy ./
 # Prisma schema required for `prisma migrate deploy` at container start
 COPY --from=builder --chown=nestjs:nodejs /monorepo/apps/api/prisma ./prisma
 
+# Startup script: applies migrations (non-fatal) then execs node
+COPY --chown=nestjs:nodejs apps/api/start.sh ./start.sh
+RUN chmod +x ./start.sh
+
 USER nestjs
-EXPOSE 4000
+EXPOSE 3000
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/main.js"]
+CMD ["./start.sh"]

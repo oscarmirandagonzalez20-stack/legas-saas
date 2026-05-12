@@ -1,9 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import { PrismaHealthIndicator } from './prisma-health.indicator';
 import { RedisHealthIndicator } from './redis-health.indicator';
 import { QueueHealthIndicator } from './indicators/queue-health.indicator';
 
+@SkipThrottle()
 @Controller('health')
 export class HealthController {
   constructor(

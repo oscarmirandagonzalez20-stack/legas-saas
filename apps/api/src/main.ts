@@ -87,6 +87,10 @@ async function bootstrap(): Promise<void> {
 
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port, '0.0.0.0');
+
+  // Emit a plain-text line so Railway logs show exactly where the server bound.
+  // eslint-disable-next-line no-console
+  console.log(`[api] NestJS listening on 0.0.0.0:${port} (${process.env.NODE_ENV ?? 'development'})`);
 }
 
 void bootstrap();
