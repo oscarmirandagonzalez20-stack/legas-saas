@@ -5,8 +5,21 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
 
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  REDIS_URL:    z.string().min(1, 'REDIS_URL is required'),
+  // Must be a real postgresql:// URL — rejects Railway placeholder strings like ${{Postgres.DATABASE_URL}}
+  // which would otherwise crash the Prisma constructor with an opaque "Invalid URL scheme" error.
+  DATABASE_URL: z
+    .string({ required_error: 'DATABASE_URL is required' })
+    .regex(
+      /^postgres(?:ql)?:\/\/.+/,
+      'DATABASE_URL must be a valid PostgreSQL URL (e.g. postgresql://user:pass@host:5432/db)',
+    ),
+
+  REDIS_URL: z
+    .string({ required_error: 'REDIS_URL is required' })
+    .regex(
+      /^rediss?:\/\/.+/,
+      'REDIS_URL must be a valid Redis URL (e.g. redis://host:6379 or rediss://host:6379)',
+    ),
 
   // Empty string is allowed so the server can boot and pass the healthcheck even
   // when the key is not yet configured. CryptoService will throw at call-time.
@@ -18,9 +31,11 @@ const envSchema = z.object({
   // ── Logging ─────────────────────────────────────────────────────────────────
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
-  // ── URLs — optional until all services are wired up ─────────────────────────
-  FRONTEND_URL: z.string().url().optional().or(z.literal('')),
-  API_URL:      z.string().url().optional().or(z.literal('')),
+  // ── URLs — optional; empty string accepted so Railway deploys without them ───
+  FRONTEND_URL:    z.string().url().optional().or(z.literal('')),
+  API_URL:         z.string().url().optional().or(z.literal('')),
+  WEB_URL:         z.string().url().optional().or(z.literal('')),
+  AI_SERVICE_URL:  z.string().url().optional().or(z.literal('')),
 
   // ── Meta / Facebook — optional, features degrade gracefully when absent ─────
   META_APP_ID:      z.string().default(''),

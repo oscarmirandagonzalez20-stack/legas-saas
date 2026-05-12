@@ -59,10 +59,38 @@ describe('validateEnv', () => {
     ).toThrow('Environment validation failed');
   });
 
+  it('throws when DATABASE_URL has invalid format (Railway placeholder)', () => {
+    expect(() =>
+      validateEnv({ ...base, DATABASE_URL: '${{Postgres.DATABASE_URL}}' }),
+    ).toThrow('Environment validation failed');
+  });
+
+  it('throws when DATABASE_URL has invalid format (bare word)', () => {
+    expect(() =>
+      validateEnv({ ...base, DATABASE_URL: 'VALUE' }),
+    ).toThrow('Environment validation failed');
+  });
+
+  it('accepts postgres:// scheme as valid DATABASE_URL', () => {
+    const result = validateEnv({ ...base, DATABASE_URL: 'postgres://user:pass@host:5432/db' });
+    expect(result.DATABASE_URL).toBe('postgres://user:pass@host:5432/db');
+  });
+
   it('throws when REDIS_URL is missing', () => {
     expect(() =>
       validateEnv({ DATABASE_URL: base.DATABASE_URL, ENCRYPTION_KEY: base.ENCRYPTION_KEY }),
     ).toThrow('Environment validation failed');
+  });
+
+  it('throws when REDIS_URL has invalid format (Railway placeholder)', () => {
+    expect(() =>
+      validateEnv({ ...base, REDIS_URL: '${{Redis.REDIS_URL}}' }),
+    ).toThrow('Environment validation failed');
+  });
+
+  it('accepts rediss:// (TLS) scheme as valid REDIS_URL', () => {
+    const result = validateEnv({ ...base, REDIS_URL: 'rediss://:password@host:6379' });
+    expect(result.REDIS_URL).toBe('rediss://:password@host:6379');
   });
 
   it('uses empty string default when ENCRYPTION_KEY is absent (server boots, crypto fails at call-time)', () => {
@@ -96,5 +124,21 @@ describe('validateEnv', () => {
   it('accepts valid URL for FRONTEND_URL', () => {
     const result = validateEnv({ ...base, FRONTEND_URL: 'https://app.example.com' });
     expect(result.FRONTEND_URL).toBe('https://app.example.com');
+  });
+
+  it('accepts WEB_URL and AI_SERVICE_URL as optional', () => {
+    const result = validateEnv({
+      ...base,
+      WEB_URL: 'https://app.example.com',
+      AI_SERVICE_URL: 'https://ai.example.com',
+    });
+    expect(result.WEB_URL).toBe('https://app.example.com');
+    expect(result.AI_SERVICE_URL).toBe('https://ai.example.com');
+  });
+
+  it('accepts empty string for WEB_URL and AI_SERVICE_URL', () => {
+    const result = validateEnv({ ...base, WEB_URL: '', AI_SERVICE_URL: '' });
+    expect(result.WEB_URL).toBe('');
+    expect(result.AI_SERVICE_URL).toBe('');
   });
 });

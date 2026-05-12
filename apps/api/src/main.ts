@@ -74,13 +74,30 @@ async function bootstrap(): Promise<void> {
   });
 
   // ── CORS ────────────────────────────────────────────────────────────────────
-  const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+  // No localhost fallback — if FRONTEND_URL is absent in production it means
+  // browser CORS requests will be blocked, but Railway's healthcheck probe is
+  // a direct HTTP GET with no Origin header so this never affects /health.
+  const frontendUrl = process.env.FRONTEND_URL ?? '';
   const corsOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
-    : [frontendUrl];
+    ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    : frontendUrl
+    ? [frontendUrl]
+    : [];
+
+  // eslint-disable-next-line no-console
+  console.log('[bootstrap] NODE_ENV:', process.env.NODE_ENV ?? 'development');
+  // eslint-disable-next-line no-console
+  console.log('[bootstrap] DATABASE_URL set:', !!process.env.DATABASE_URL);
+  // eslint-disable-next-line no-console
+  console.log('[bootstrap] REDIS_URL set:', !!process.env.REDIS_URL);
+  // eslint-disable-next-line no-console
+  console.log(
+    '[bootstrap] CORS origins:',
+    corsOrigins.length ? corsOrigins.join(', ') : '(none — set FRONTEND_URL or CORS_ORIGINS)',
+  );
 
   app.enableCors({
-    origin: corsOrigins,
+    origin: corsOrigins.length ? corsOrigins : false,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Dev-Tenant-Id', 'X-Request-Id'],
