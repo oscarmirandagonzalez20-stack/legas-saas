@@ -65,10 +65,9 @@ describe('validateEnv', () => {
     ).toThrow('Environment validation failed');
   });
 
-  it('throws when ENCRYPTION_KEY is missing', () => {
-    expect(() =>
-      validateEnv({ DATABASE_URL: base.DATABASE_URL, REDIS_URL: base.REDIS_URL }),
-    ).toThrow('Environment validation failed');
+  it('uses empty string default when ENCRYPTION_KEY is absent (server boots, crypto fails at call-time)', () => {
+    const result = validateEnv({ DATABASE_URL: base.DATABASE_URL, REDIS_URL: base.REDIS_URL });
+    expect(result.ENCRYPTION_KEY).toBe('');
   });
 
   it('throws when ENCRYPTION_KEY is wrong format', () => {

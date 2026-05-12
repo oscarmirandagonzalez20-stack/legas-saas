@@ -8,9 +8,12 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   REDIS_URL:    z.string().min(1, 'REDIS_URL is required'),
 
-  ENCRYPTION_KEY: z
-    .string()
-    .regex(/^[0-9a-fA-F]{64}$/, 'ENCRYPTION_KEY must be 64 hex chars (32 bytes AES-256)'),
+  // Empty string is allowed so the server can boot and pass the healthcheck even
+  // when the key is not yet configured. CryptoService will throw at call-time.
+  ENCRYPTION_KEY: z.union([
+    z.string().regex(/^[0-9a-fA-F]{64}$/, 'ENCRYPTION_KEY must be 64 hex chars (32 bytes AES-256)'),
+    z.literal(''),
+  ]).default(''),
 
   // ── Logging ─────────────────────────────────────────────────────────────────
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),

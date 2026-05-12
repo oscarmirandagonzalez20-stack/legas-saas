@@ -5,8 +5,14 @@ import { PrismaClient } from '@prisma/client';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
-  async onModuleInit(): Promise<void> {
-    await this.$connect();
+  onModuleInit(): void {
+    // Fire-and-forget: do not await so NestJS module init (and app.listen)
+    // is not blocked by a slow or temporarily unreachable database.
+    // Prisma retries internally; individual queries will fail with a clear
+    // error if the DB is still unreachable when they are executed.
+    this.$connect().catch((err: Error) => {
+      this.logger.warn(`Initial $connect failed: ${err.message} — will retry on first query`);
+    });
   }
 
   async onModuleDestroy(): Promise<void> {
