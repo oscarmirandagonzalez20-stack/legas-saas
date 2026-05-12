@@ -32,8 +32,8 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
   // ── URLs — optional; empty string accepted so Railway deploys without them ───
-  FRONTEND_URL:    z.string().url().optional().or(z.literal('')),
-  API_URL:         z.string().url().optional().or(z.literal('')),
+  FRONTEND_URL:    z.string().url().or(z.literal('')).default(''),
+  API_URL:         z.string().url().or(z.literal('')).default(''),
   WEB_URL:         z.string().url().optional().or(z.literal('')),
   AI_SERVICE_URL:  z.string().url().optional().or(z.literal('')),
 

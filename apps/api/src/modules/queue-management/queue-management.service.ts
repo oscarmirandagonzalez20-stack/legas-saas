@@ -57,8 +57,8 @@ export class QueueManagementService {
       attemptsMade: job.attemptsMade,
       timestamp: job.timestamp,
       finishedOn: job.finishedOn ?? null,
-      correlationId: (job.data as { correlationId?: string }).correlationId ?? null,
-      eventType: (job.data as { eventType?: string }).eventType ?? null,
+      correlationId: job.data.correlationId ?? null,
+      eventType: job.data.event.type,
     }));
   }
 

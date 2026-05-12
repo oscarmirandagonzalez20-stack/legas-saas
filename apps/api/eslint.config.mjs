@@ -2,7 +2,7 @@ import baseConfig from '@legal-saas/eslint-config';
 
 export default [
   // Archivos que no pertenecen al proyecto TypeScript
-  { ignores: ['eslint.config.mjs', 'dist/**', 'coverage/**', 'vitest.config.ts', 'vitest.e2e.config.ts'] },
+  { ignores: ['eslint.config.mjs', 'webpack.config.js', 'dist/**', 'coverage/**', 'vitest.config.ts', 'vitest.e2e.config.ts'] },
   ...baseConfig,
   // Allow files outside tsconfig include (seed.ts lives in prisma/, not src/)
   {

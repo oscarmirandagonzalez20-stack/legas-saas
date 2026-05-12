@@ -27,6 +27,19 @@ export class MetaOAuthController {
     private readonly config: AppConfigService,
   ) {}
 
+  // Builds the redirect target. When FRONTEND_URL is unset (empty string), new URL() would
+  // throw TypeError — instead return the raw path+query so the redirect is still valid.
+  private buildFrontendRedirect(path: string, params: Record<string, string> = {}): string {
+    const base = this.config.frontendUrl;
+    if (!base) {
+      const search = new URLSearchParams(params).toString();
+      return search ? `${path}?${search}` : path;
+    }
+    const url = new URL(path, base);
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+    return url.toString();
+  }
+
   // ── GET /social-accounts/meta/connect ────────────────────────────────────────
   // Requires tenant context established by DevTenantGuard (dev) / Clerk guard (prod).
   // Returns the Facebook OAuth dialog URL — client performs the redirect.
@@ -54,9 +67,9 @@ export class MetaOAuthController {
     // Handle OAuth denial / error from Meta
     if (query.error !== undefined || !query.code || !query.state) {
       const errorParam = query.error ?? 'missing_params';
-      const redirectUrl = new URL('/settings/social-accounts', this.config.frontendUrl);
-      redirectUrl.searchParams.set('error', errorParam);
-      await reply.redirect(redirectUrl.toString());
+      await reply.redirect(
+        this.buildFrontendRedirect('/settings/social-accounts', { error: errorParam }),
+      );
       return;
     }
 
@@ -76,9 +89,10 @@ export class MetaOAuthController {
       'OAuth callback completed',
     );
 
-    const defaultRedirect = new URL('/settings/social-accounts', this.config.frontendUrl);
-    defaultRedirect.searchParams.set('connected', String(result.accountsConnected));
+    const defaultRedirect = this.buildFrontendRedirect('/settings/social-accounts', {
+      connected: String(result.accountsConnected),
+    });
 
-    await reply.redirect(oauthState.returnUrl ?? defaultRedirect.toString());
+    await reply.redirect(oauthState.returnUrl ?? defaultRedirect);
   }
 }

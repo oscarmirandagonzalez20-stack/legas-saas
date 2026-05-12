@@ -41,11 +41,11 @@ export class AppConfigService {
   // ── URLs — may be empty until services are wired up ────────────────────────
 
   get frontendUrl(): string {
-    return this.config.get('FRONTEND_URL', { infer: true }) ?? '';
+    return this.config.get('FRONTEND_URL', { infer: true });
   }
 
   get apiUrl(): string {
-    return this.config.get('API_URL', { infer: true }) ?? '';
+    return this.config.get('API_URL', { infer: true });
   }
 
   // ── Meta — empty string when not yet configured ───────────────────────────
