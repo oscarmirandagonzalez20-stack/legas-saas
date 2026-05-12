@@ -49,8 +49,6 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser  --system --uid 1001 nestjs
 
 # Self-contained deployment snapshot: flat prod node_modules + package files.
-# NOTE: pnpm deploy respects .gitignore when selecting files, so dist/ (which is
-# gitignored) is NOT included here — we copy it explicitly below.
 COPY --from=builder --chown=nestjs:nodejs /deploy ./
 
 # Webpack bundle — dist/ is gitignored so pnpm deploy excludes it. Copy directly
@@ -65,6 +63,12 @@ COPY --from=builder --chown=nestjs:nodejs /monorepo/apps/api/prisma ./prisma
 # Startup script: execs node directly — migrations are handled by predeploy.
 COPY --chown=nestjs:nodejs apps/api/start.sh ./start.sh
 RUN chmod +x ./start.sh
+
+# pnpm deploy creates a flat node_modules but the .prisma/client/ sibling that
+# lives inside pnpm's virtual store is NOT hoisted into the flat layout.
+# Running prisma generate here creates node_modules/.prisma/client/ with the
+# linux-musl-openssl-3.0.x query-engine binary that PrismaClient needs at startup.
+RUN node node_modules/.bin/prisma generate --schema=./prisma/schema.prisma
 
 USER nestjs
 EXPOSE 3000
