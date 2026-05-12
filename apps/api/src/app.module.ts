@@ -23,6 +23,7 @@ import { MetaOAuthModule } from '@/modules/meta-oauth/meta-oauth.module';
 import { SocialAccountsModule } from '@/modules/social-accounts/social-accounts.module';
 import { ConversationsModule } from '@/modules/conversations/conversations.module';
 import { QueueManagementModule } from '@/modules/queue-management/queue-management.module';
+import { SafetyModule } from '@/modules/safety/safety.module';
 import { requestContextStorage } from '@/common/request-context/request-context.service';
 
 @Module({
@@ -71,6 +72,7 @@ import { requestContextStorage } from '@/common/request-context/request-context.
     AppConfigModule,
     PrismaModule,
     RedisModule,
+    SafetyModule,
     RequestContextModule,
     TenantContextModule,
     HealthModule,

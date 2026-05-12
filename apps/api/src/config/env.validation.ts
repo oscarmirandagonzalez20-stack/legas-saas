@@ -62,6 +62,36 @@ const envSchema = z.object({
 
   // ── CORS — optional, falls back to FRONTEND_URL ─────────────────────────────
   CORS_ORIGINS: z.string().optional(),
+
+  // ── Meta Safety — enterprise-grade protection layer ──────────────────────────
+  // SAFE_MODE=true blocks all outgoing automation (default: true).
+  // Only "false" or "0" disables it — any other value keeps it enabled.
+  SAFE_MODE: z
+    .string()
+    .optional()
+    .default('true')
+    .transform((v) => v !== 'false' && v !== '0'),
+
+  META_AUTOMATION_MODE: z
+    .enum(['MANUAL', 'SEMI_AUTOMATIC', 'SAFE_AUTOMATIC'])
+    .default('MANUAL'),
+
+  // Per-account message rate limits — human-realistic maximums
+  META_MAX_MSG_PER_MIN:              z.coerce.number().int().min(1).max(10).default(2),
+  META_MAX_MSG_PER_HOUR:             z.coerce.number().int().min(1).max(120).default(30),
+  META_MAX_MSG_PER_DAY:              z.coerce.number().int().min(1).max(500).default(200),
+  META_MAX_DMS_PER_HOUR:             z.coerce.number().int().min(1).max(60).default(20),
+  META_MAX_COMMENT_REPLIES_PER_HOUR: z.coerce.number().int().min(1).max(60).default(30),
+  META_MAX_RESPONSES_PER_USER:       z.coerce.number().int().min(1).max(10).default(3),
+  META_MAX_RESPONSES_PER_CONV:       z.coerce.number().int().min(1).max(10).default(5),
+
+  // Humanization — random delay range in milliseconds between responses
+  META_HUMANIZATION_MIN_DELAY_MS: z.coerce.number().int().min(5_000).default(20_000),
+  META_HUMANIZATION_MAX_DELAY_MS: z.coerce.number().int().min(10_000).default(180_000),
+
+  // Circuit breaker — auto-pauses an account after N consecutive Meta errors
+  META_CB_THRESHOLD:  z.coerce.number().int().min(1).max(20).default(3),
+  META_CB_TIMEOUT_MS: z.coerce.number().int().min(60_000).default(900_000), // 15 min
 });
 
 export type Env = z.infer<typeof envSchema>;

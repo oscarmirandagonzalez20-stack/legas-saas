@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@/config/env.validation';
+import { AutomationMode } from '@/modules/safety/safety.types';
 
 @Injectable()
 export class AppConfigService {
@@ -94,5 +95,59 @@ export class AppConfigService {
 
   get mercadopagoAccessToken(): string {
     return this.config.get('MERCADOPAGO_ACCESS_TOKEN', { infer: true });
+  }
+
+  // ── Safety config ─────────────────────────────────────────────────────────
+
+  get safeMode(): boolean {
+    return this.config.get('SAFE_MODE', { infer: true });
+  }
+
+  get automationMode(): AutomationMode {
+    return this.config.get('META_AUTOMATION_MODE', { infer: true });
+  }
+
+  get metaMaxMsgPerMin(): number {
+    return this.config.get('META_MAX_MSG_PER_MIN', { infer: true });
+  }
+
+  get metaMaxMsgPerHour(): number {
+    return this.config.get('META_MAX_MSG_PER_HOUR', { infer: true });
+  }
+
+  get metaMaxMsgPerDay(): number {
+    return this.config.get('META_MAX_MSG_PER_DAY', { infer: true });
+  }
+
+  get metaMaxDmsPerHour(): number {
+    return this.config.get('META_MAX_DMS_PER_HOUR', { infer: true });
+  }
+
+  get metaMaxCommentRepliesPerHour(): number {
+    return this.config.get('META_MAX_COMMENT_REPLIES_PER_HOUR', { infer: true });
+  }
+
+  get metaMaxResponsesPerUser(): number {
+    return this.config.get('META_MAX_RESPONSES_PER_USER', { infer: true });
+  }
+
+  get metaMaxResponsesPerConv(): number {
+    return this.config.get('META_MAX_RESPONSES_PER_CONV', { infer: true });
+  }
+
+  get metaHumanizationMinDelayMs(): number {
+    return this.config.get('META_HUMANIZATION_MIN_DELAY_MS', { infer: true });
+  }
+
+  get metaHumanizationMaxDelayMs(): number {
+    return this.config.get('META_HUMANIZATION_MAX_DELAY_MS', { infer: true });
+  }
+
+  get metaCbThreshold(): number {
+    return this.config.get('META_CB_THRESHOLD', { infer: true });
+  }
+
+  get metaCbTimeoutMs(): number {
+    return this.config.get('META_CB_TIMEOUT_MS', { infer: true });
   }
 }
