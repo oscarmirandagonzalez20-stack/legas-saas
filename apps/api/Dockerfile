@@ -51,10 +51,12 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Self-contained deployment snapshot (flat node_modules + dist/)
 COPY --from=builder --chown=nestjs:nodejs /deploy ./
 
-# Prisma schema required for `prisma migrate deploy` at container start
+# Prisma schema required by `node node_modules/.bin/prisma migrate deploy`
+# which Railway runs via the predeploy hook in railway.toml before traffic
+# is routed to this container.
 COPY --from=builder --chown=nestjs:nodejs /monorepo/apps/api/prisma ./prisma
 
-# Startup script: applies migrations (non-fatal) then execs node
+# Startup script: execs node directly — migrations are handled by predeploy.
 COPY --chown=nestjs:nodejs apps/api/start.sh ./start.sh
 RUN chmod +x ./start.sh
 

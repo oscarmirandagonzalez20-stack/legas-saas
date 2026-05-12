@@ -38,13 +38,18 @@ import { requestContextStorage } from '@/common/request-context/request-context.
 
     BullModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService<Env, true>) => ({
-        connection: new Redis(config.get('REDIS_URL', { infer: true }), {
+      useFactory: (config: ConfigService<Env, true>) => {
+        const connection = new Redis(config.get('REDIS_URL', { infer: true }), {
           maxRetriesPerRequest: null,  // required by BullMQ
           enableOfflineQueue: false,
           retryStrategy: (times: number) => Math.min(times * 200, 3000),
-        }),
-      }),
+        });
+        // BullMQ attaches its own error listener, but adding a defensive no-op here
+        // prevents an unhandled 'error' event crash if Redis is temporarily unreachable
+        // in the brief window before BullMQ registers its listener.
+        connection.on('error', () => undefined);
+        return { connection };
+      },
     }),
 
     LoggerModule.forRoot({
