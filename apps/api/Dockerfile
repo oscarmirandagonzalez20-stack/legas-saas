@@ -55,9 +55,8 @@ COPY --from=builder --chown=nestjs:nodejs /deploy ./
 # from the builder where nest build placed it.
 COPY --from=builder --chown=nestjs:nodejs /monorepo/apps/api/dist ./dist
 
-# Prisma schema required by `node node_modules/.bin/prisma migrate deploy`
-# which Railway runs via the predeploy hook in railway.toml before traffic
-# is routed to this container.
+# Prisma schema required by `prisma migrate deploy` which Railway runs via the
+# predeploy hook in railway.toml before traffic is routed to this container.
 COPY --from=builder --chown=nestjs:nodejs /monorepo/apps/api/prisma ./prisma
 
 # Startup script: execs node directly — migrations are handled by predeploy.
@@ -68,7 +67,9 @@ RUN chmod +x ./start.sh
 # lives inside pnpm's virtual store is NOT hoisted into the flat layout.
 # Running prisma generate here creates node_modules/.prisma/client/ with the
 # linux-musl-openssl-3.0.x query-engine binary that PrismaClient needs at startup.
-RUN node node_modules/.bin/prisma generate --schema=./prisma/schema.prisma
+# NOTE: node_modules/.bin/prisma is a #!/bin/sh wrapper — calling `node` on it
+# causes SyntaxError. We call the bundled JS entry point directly instead.
+RUN node node_modules/prisma/build/index.js generate --schema=./prisma/schema.prisma
 
 USER nestjs
 EXPOSE 3000
