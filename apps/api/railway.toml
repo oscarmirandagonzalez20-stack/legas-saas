@@ -7,9 +7,8 @@ numReplicas = 1
 sleepApplication = false
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
-# Migrations run in a pre-deploy step: Railway starts this in the new container
-# before routing traffic to it. If it fails, the old deployment stays active.
-# Uses `node` explicitly to avoid relying on executable bits or PATH lookups.
-predeploy = "node node_modules/.bin/prisma migrate deploy"
-healthcheckPath = "/health"
+# Migrations run as a pre-deploy step. node_modules/.bin/prisma is a #!/bin/sh
+# wrapper — calling `node` on it causes SyntaxError. Call the JS entry point directly.
+predeploy = "node node_modules/prisma/build/index.js migrate deploy"
+healthcheckPath = "/salud"
 healthcheckTimeout = 300

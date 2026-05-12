@@ -148,7 +148,8 @@ async function bootstrap(): Promise<void> {
 
   clearTimeout(hangAlarm);
   console.warn(`${ts()} [6/6] ✓ LISTENING on 0.0.0.0:${String(port)}`);
-  console.warn(`${ts()} ══════ BOOTSTRAP COMPLETE — GET /health → 200 OK ══════`);
+  console.warn(`${ts()} [6/6] ✓ Health endpoint ready: GET /salud → { ok: true }`);
+  console.warn(`${ts()} ══════ BOOTSTRAP COMPLETE — GET /salud → 200 { ok: true } ══════`);
 }
 
 void bootstrap().catch((err: unknown) => {
